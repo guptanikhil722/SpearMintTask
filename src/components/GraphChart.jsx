@@ -1,4 +1,4 @@
-import React,{useEffect, useState, useRef} from 'react'
+import React,{useEffect, useState, useRef, useMemo} from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -27,42 +27,57 @@ function GraphChart() {
 const [xAxisValues, setXAxisValues] = useState([])
 const [yAxisValues, setYAxisValues] = useState([])
 const graphData = useRef([])
-const getYAxisData=async()=>{
+const getYAxisData=()=>{
+    return new Promise(async(resolve,reject)=>{
     try {
         let res = await axiosMain.get('o5zMs5/data')
         if(res.data.length>0 && res.status == 200){
         setYAxisValues(res.data.slice(0,50))
-        console.log('y axis>>.',yAxisValues)
+        // console.log('y axis>>.',yAxisValues)
+        resolve()
     }else{
         setYAxisValues([])
     }
     } catch (error) {
-        
+        reject()
     }
+})
 
 }
-const getXAxisData=async()=>{
+const getXAxisData=()=>{
+    return new Promise(async(resolve,reject)=>{
     try {
         let res = await axiosMain.get('gDa8uC/data')
         if(res.data.length>0 && res.status == 200){
         setXAxisValues(res.data.slice(0,50))
+        resolve()
     }else{
         setXAxisValues([])
     }
     } catch (error) {
-        
+        reject()
     }
+})
 
 }
 
 useEffect(() => {
-    getXAxisData()
-    getYAxisData()
-    // combinedData()
-}, [])
-
-   const newArr = xAxisValues.map((xValue, index) => [parseFloat(xValue.RandomNumber?xValue.RandomNumber:getXAxisData()), parseFloat(yAxisValues[index].RandomNumber?yAxisValues[index].RandomNumber:getYAxisData())])
-
+    const fetchData = async () => {
+      await Promise.all([getXAxisData(), getYAxisData()]);
+    };
+  
+    fetchData();
+  }, []);
+ 
+  useEffect(() => {
+    const newArr = xAxisValues.map((xValue, index) => [
+      parseFloat(xValue.RandomNumber),
+      parseFloat(yAxisValues[index].RandomNumber),
+    ]);
+    graphData.current = newArr;
+  },[xAxisValues, yAxisValues])
+  
+   
 const options = {
     scales: {
       y: {
@@ -101,8 +116,8 @@ const options = {
         hoverBackgroundColor: "rgba(255,99,132,0.4)",
         hoverBorderColor: "rgba(255,99,132,1)",
         label: "A dataset",
-        data: newArr,
-        backgroundColor: "rgba(255, 99, 132, 1)",
+        data: graphData.current,
+       
         
       },
     ],
