@@ -1,4 +1,4 @@
-import React,{useEffect, useState, useRef, useMemo} from 'react'
+import React,{useEffect, useState} from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -24,19 +24,19 @@ ChartJS.register(
 );
 
 function GraphChart() {
-const [xAxisValues, setXAxisValues] = useState([])
-const [yAxisValues, setYAxisValues] = useState([])
-const graphData = useRef([])
+// const [xAxisValues, setXAxisValues] = useState([])
+// const [yAxisValues, setYAxisValues] = useState([])
+const [graphData, setGraphData] = useState([])
 const getYAxisData=()=>{
     return new Promise(async(resolve,reject)=>{
     try {
         let res = await axiosMain.get('o5zMs5/data')
         if(res.data.length>0 && res.status == 200){
-        setYAxisValues(res.data.slice(0,50))
+        // setYAxisValues(res.data.slice(0,50))
         // console.log('y axis>>.',yAxisValues)
-        resolve()
+        resolve(res.data.slice(0,50))
     }else{
-        setYAxisValues([])
+        resolve([])
     }
     } catch (error) {
         reject()
@@ -49,10 +49,10 @@ const getXAxisData=()=>{
     try {
         let res = await axiosMain.get('gDa8uC/data')
         if(res.data.length>0 && res.status == 200){
-        setXAxisValues(res.data.slice(0,50))
-        resolve()
+        // setXAxisValues(res.data.slice(0,50))
+        resolve(res.data.slice(0,50))
     }else{
-        setXAxisValues([])
+        resolve([])
     }
     } catch (error) {
         reject()
@@ -60,22 +60,27 @@ const getXAxisData=()=>{
 })
 
 }
+const fetchData =  () => {
+    return Promise.all([getXAxisData(), getYAxisData()]);
+  };
 
 useEffect(() => {
-    const fetchData = async () => {
-      await Promise.all([getXAxisData(), getYAxisData()]);
-    };
   
-    fetchData();
-  }, []);
+    fetchData().then(([xAxisValues,yAxisValues])=>{
+        setGraphData((prevData)=>{
+            const newArr = [...prevData]
+          const newArr1 = xAxisValues.map((xValue, index) => [
+            parseFloat(xValue.RandomNumber),
+            parseFloat(yAxisValues[index].RandomNumber),
+          ]);
+          return[ ...newArr1]})
+    });
+    console.log("graph data>>>", graphData)
+}, []);
  
-  useEffect(() => {
-    const newArr = xAxisValues.map((xValue, index) => [
-      parseFloat(xValue.RandomNumber),
-      parseFloat(yAxisValues[index].RandomNumber),
-    ]);
-    graphData.current = newArr;
-  },[xAxisValues, yAxisValues])
+//   useEffect(() => {
+    
+//   },[xAxisValues, yAxisValues])
   
    
 const options = {
@@ -116,7 +121,7 @@ const options = {
         hoverBackgroundColor: "rgba(255,99,132,0.4)",
         hoverBorderColor: "rgba(255,99,132,1)",
         label: "A dataset",
-        data: graphData.current,
+        data: graphData,
        
         
       },
